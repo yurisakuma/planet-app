@@ -9,11 +9,13 @@ app.use(
   cors({
     origin: [
       'http://localhost:3000',
-      'https://legendary-scone-7c0fc3.netlify.app/',
+      'https://legendary-scone-7c0fc3.netlify.app',
+      'https://planet-app-yppo.onrender.com',
     ],
     credentials: true,
   })
 );
+
 app.use(express.json());
 
 app.get('/api/planets', async (req, res) => {
