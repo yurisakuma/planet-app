@@ -52,7 +52,7 @@ psql -h localhost -U seu_usuario -d planetdb -f backend/database/seed.sql
 ### 1. Clonar o Repositório
 
 ```bash
-git clone <url-do-repositorio>
+git clone https://github.com/yurisakuma/planet-app
 cd planet-app
 ```
 
