@@ -216,7 +216,7 @@ async function fetchOrbits() {
 async function submitForm() {
   loading.value = true;
   try {
-    await apiClient.post('/planets', form.value);
+    const response = await apiClient.post('/planets', form.value);
 
     if (response.ok) {
       snackbar.value = {
