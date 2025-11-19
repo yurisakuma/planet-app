@@ -5,13 +5,21 @@ import pool from './database.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      'http://localhost:3000',
+      'https://legendary-scone-7c0fc3.netlify.app/',
+    ],
+    credentials: true,
+  })
+);
 app.use(express.json());
 
 app.get('/api/planets', async (req, res) => {
   try {
     const { search, minMass, maxMass, planetType } = req.query;
-    
+
     let query = `
       SELECT 
         p.*,
@@ -34,7 +42,7 @@ app.get('/api/planets', async (req, res) => {
       LEFT JOIN anao ana ON p.id_planeta = ana.id_planeta
       WHERE 1=1
     `;
-    
+
     const params = [];
     let paramCount = 0;
 
@@ -68,7 +76,7 @@ app.get('/api/planets', async (req, res) => {
     }
 
     query += ` ORDER BY p.nome`;
-    
+
     const result = await pool.query(query, params);
     res.json(result.rows);
   } catch (error) {
@@ -94,16 +102,16 @@ app.get('/api/orbits', async (req, res) => {
 
 app.post('/api/planets', async (req, res) => {
   const client = await pool.connect();
-  
+
   try {
     await client.query('BEGIN');
-    
-    const { 
-      nome, 
-      massa_terra, 
-      raio_km, 
-      gravidade_m_s2, 
-      distancia_anos_luz, 
+
+    const {
+      nome,
+      massa_terra,
+      raio_km,
+      gravidade_m_s2,
+      distancia_anos_luz,
       id_orbita_estrela,
       tipo_planeta,
       temperatura_atmosfera,
@@ -115,18 +123,29 @@ app.post('/api/planets', async (req, res) => {
       campo_magnetico,
       criovulcanismo,
       albedo,
-      gelo_volatil
+      gelo_volatil,
     } = req.body;
 
     const planetResult = await client.query(
       `INSERT INTO planeta (id_orbita_estrela, nome, massa_terra, raio_km, gravidade_m_s2, distancia_anos_luz) 
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id_planeta`,
-      [id_orbita_estrela, nome, massa_terra, raio_km, gravidade_m_s2, distancia_anos_luz]
+      [
+        id_orbita_estrela,
+        nome,
+        massa_terra,
+        raio_km,
+        gravidade_m_s2,
+        distancia_anos_luz,
+      ]
     );
 
     const planetId = planetResult.rows[0].id_planeta;
 
-    if (tipo_planeta === 'gasoso' && temperatura_atmosfera && velocidade_ventos) {
+    if (
+      tipo_planeta === 'gasoso' &&
+      temperatura_atmosfera &&
+      velocidade_ventos
+    ) {
       await client.query(
         `INSERT INTO gasoso (id_planeta, temperatura_atmosfera, velocidade_ventos) VALUES ($1, $2, $3)`,
         [planetId, temperatura_atmosfera, velocidade_ventos]
@@ -135,9 +154,20 @@ app.post('/api/planets', async (req, res) => {
       await client.query(
         `INSERT INTO rochoso (id_planeta, topografia, vulcanismo, temperatura_superficie, presencia_agua_liquida, campo_magnetico) 
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [planetId, topografia, vulcanismo, temperatura_superficie, presencia_agua_liquida, campo_magnetico]
+        [
+          planetId,
+          topografia,
+          vulcanismo,
+          temperatura_superficie,
+          presencia_agua_liquida,
+          campo_magnetico,
+        ]
       );
-    } else if (tipo_planeta === 'anao' && criovulcanismo && albedo !== undefined) {
+    } else if (
+      tipo_planeta === 'anao' &&
+      criovulcanismo &&
+      albedo !== undefined
+    ) {
       await client.query(
         `INSERT INTO anao (id_planeta, criovulcanismo, albedo, gelo_volatil) VALUES ($1, $2, $3, $4)`,
         [planetId, criovulcanismo, albedo, gelo_volatil || false]
@@ -145,7 +175,9 @@ app.post('/api/planets', async (req, res) => {
     }
 
     await client.query('COMMIT');
-    res.status(201).json({ message: 'Planet created successfully', id: planetId });
+    res
+      .status(201)
+      .json({ message: 'Planet created successfully', id: planetId });
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Error creating planet:', error);
