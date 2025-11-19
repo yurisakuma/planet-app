@@ -9,14 +9,15 @@
       </v-card-title>
 
       <v-card-text>
-        <v-form @submit.prevent="submitForm">
+        <v-form ref="formRef" @submit.prevent="submitForm">
           <v-row>
             <v-col cols="12" md="6">
               <v-text-field
                 v-model="form.nome"
-                label="Planet Name"
-                required
-                :rules="[(v) => !!v || 'Name is required']"
+                label="Planet Name *"
+                :rules="nameRules"
+                maxlength="50"
+                counter
               ></v-text-field>
             </v-col>
 
@@ -26,9 +27,9 @@
                 :items="orbits"
                 item-title="display"
                 item-value="id_orbita_estrela"
-                label="Orbit Around Star"
+                label="Orbit Around Star *"
+                :rules="orbitRules"
                 required
-                :rules="[(v) => !!v || 'Orbit is required']"
               ></v-select>
             </v-col>
 
@@ -38,14 +39,19 @@
                 label="Mass (Earth masses)"
                 type="number"
                 step="0.01"
+                :rules="massRules"
+                hint="Must be positive"
               ></v-text-field>
             </v-col>
 
             <v-col cols="12" md="4">
               <v-text-field
                 v-model="form.raio_km"
-                label="Radius (km)"
+                label="Radius (km) *"
                 type="number"
+                step="0.01"
+                :rules="radiusRules"
+                hint="Must be positive"
               ></v-text-field>
             </v-col>
 
@@ -55,6 +61,7 @@
                 label="Gravity (m/s²)"
                 type="number"
                 step="0.01"
+                :rules="gravityRules"
               ></v-text-field>
             </v-col>
 
@@ -64,6 +71,8 @@
                 label="Distance (light years)"
                 type="number"
                 step="0.01"
+                :rules="distanceRules"
+                hint="Must be positive"
               ></v-text-field>
             </v-col>
 
@@ -71,7 +80,8 @@
               <v-select
                 v-model="form.tipo_planeta"
                 :items="planetTypes"
-                label="Planet Type"
+                label="Planet Type *"
+                :rules="planetTypeRules"
                 @update:model-value="resetTypeFields"
               ></v-select>
             </v-col>
@@ -82,29 +92,46 @@
                   v-model="form.temperatura_atmosfera"
                   label="Atmosphere Temperature (°C)"
                   type="number"
+                  step="0.01"
+                  :rules="gasosoTempRules"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.velocidade_ventos"
-                  label="Wind Speed (km/h)"
+                  label="Wind Speed (km/h) *"
                   type="number"
+                  step="0.01"
+                  :rules="windSpeedRules"
+                  hint="Must be non-negative"
                 ></v-text-field>
               </v-col>
             </template>
 
             <template v-if="form.tipo_planeta === 'rochoso'">
               <v-col cols="12" md="6">
-                <v-text-field v-model="form.topografia" label="Topography"></v-text-field>
+                <v-text-field 
+                  v-model="form.topografia" 
+                  label="Topography"
+                  maxlength="100"
+                  counter
+                ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
-                <v-text-field v-model="form.vulcanismo" label="Volcanism"></v-text-field>
+                <v-text-field 
+                  v-model="form.vulcanismo" 
+                  label="Volcanism"
+                  maxlength="100"
+                  counter
+                ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.temperatura_superficie"
                   label="Surface Temperature (°C)"
                   type="number"
+                  step="0.01"
+                  :rules="rochosoTempRules"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
@@ -119,6 +146,7 @@
                   label="Magnetic Field (μT)"
                   type="number"
                   step="0.01"
+                  :rules="magneticFieldRules"
                 ></v-text-field>
               </v-col>
             </template>
@@ -152,6 +180,7 @@ import { apiClient } from '../utils/api.js'
 const router = useRouter();
 const loading = ref(false);
 const orbits = ref([]);
+const formRef = ref();
 
 const snackbar = ref({
   show: false,
@@ -176,14 +205,67 @@ const form = ref({
   campo_magnetico: '',
 });
 
+const nameRules = [
+  v => !!v || 'Planet name is required',
+  v => (v && v.length <= 50) || 'Name must be less than 50 characters'
+];
+
+const orbitRules = [
+  v => !!v || 'Orbit selection is required'
+];
+
+const massRules = [
+  v => !v || v > 0 || 'Mass must be positive'
+];
+
+const radiusRules = [
+  v => !!v || 'Radius is required',
+  v => v > 0 || 'Radius must be positive'
+];
+
+const gravityRules = [
+  v => !v || Math.abs(v) <= 999.99 || 'Gravity must be reasonable (max 999.99)'
+];
+
+const distanceRules = [
+  v => !v || v > 0 || 'Distance must be positive',
+  v => !v || v <= 9999999.999 || 'Distance too large (max 9,999,999.999)'
+];
+
+const planetTypeRules = [
+  v => !!v || 'Planet type is required'
+];
+
+const gasosoTempRules = [
+  v => !v || Math.abs(v) <= 9999.99 || 'Temperature out of range'
+];
+
+const windSpeedRules = [
+  v => !form.value.tipo_planeta || form.value.tipo_planeta !== 'gasoso' || !!v || 'Wind speed is required for gas giants',
+  v => !v || v >= 0 || 'Wind speed must be non-negative',
+  v => !v || v <= 9999.99 || 'Wind speed too high'
+];
+
+const rochosoTempRules = [
+  v => !v || Math.abs(v) <= 9999.99 || 'Temperature out of range'
+];
+
+const magneticFieldRules = [
+  v => !v || Math.abs(v) <= 9999.99 || 'Magnetic field too strong'
+];
+
 const planetTypes = [
   { title: 'Select planet type', value: '' },
-  { title: 'Gasoso', value: 'gasoso' },
-  { title: 'Rochoso', value: 'rochoso' },
+  { title: 'Gasoso (Gas Giant)', value: 'gasoso' },
+  { title: 'Rochoso (Rocky)', value: 'rochoso' }
 ];
 
 const isFormValid = computed(() => {
-  return form.value.nome && form.value.id_orbita_estrela;
+  return form.value.nome && 
+         form.value.id_orbita_estrela && 
+         form.value.tipo_planeta &&
+         form.value.raio_km &&
+         form.value.raio_km > 0;
 });
 
 function resetTypeFields() {
@@ -214,31 +296,42 @@ async function fetchOrbits() {
 }
 
 async function submitForm() {
+  const { valid } = await formRef.value.validate();
+  
+  if (!valid) {
+    snackbar.value = {
+      show: true,
+      message: 'Please fix form errors before submitting.',
+      color: 'error',
+    };
+    return;
+  }
+
   loading.value = true;
   try {
-    const response = await apiClient.post('/planets', form.value);
+    const result = await apiClient.post('/planets', form.value);
+    console.log('Planet created:', result);
+    
+    snackbar.value = {
+      show: true,
+      message: 'Planet added successfully!',
+      color: 'success',
+    };
 
-    if (response.ok) {
-      snackbar.value = {
-        show: true,
-        message: 'Planet added successfully!',
-        color: 'success',
-      };
+    Object.keys(form.value).forEach((key) => {
+      if (typeof form.value[key] === 'boolean') {
+        form.value[key] = false;
+      } else {
+        form.value[key] = '';
+      }
+    });
 
-      Object.keys(form.value).forEach((key) => {
-        if (typeof form.value[key] === 'boolean') {
-          form.value[key] = false;
-        } else {
-          form.value[key] = '';
-        }
-      });
+    formRef.value.reset();
 
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
-    } else {
-      throw new Error('Failed to add planet');
-    }
+    setTimeout(() => {
+      router.push('/');
+    }, 1500);
+    
   } catch (error) {
     console.error('Error adding planet:', error);
     snackbar.value = {
