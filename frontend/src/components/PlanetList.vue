@@ -5,9 +5,7 @@
         <v-icon class="mr-2">mdi-planet</v-icon>
         Planet Catalog
         <v-spacer></v-spacer>
-        <v-btn to="/add" color="primary" prepend-icon="mdi-plus">
-          Add Planet
-        </v-btn>
+        <v-btn to="/add" color="primary" prepend-icon="mdi-plus"> Add Planet </v-btn>
       </v-card-title>
 
       <v-card-text>
@@ -95,23 +93,24 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted } from 'vue';
+import { apiClient } from '../utils/api.js'
 
-const planets = ref([])
-const loading = ref(false)
+const planets = ref([]);
+const loading = ref(false);
 
 const filters = ref({
   search: '',
   minMass: '',
   maxMass: '',
-  planetType: ''
-})
+  planetType: '',
+});
 
 const planetTypes = [
   { title: 'All', value: 'all' },
   { title: 'Gasoso', value: 'gasoso' },
-  { title: 'Rochoso', value: 'rochoso' }
-]
+  { title: 'Rochoso', value: 'rochoso' },
+];
 
 const headers = [
   { title: 'Name', key: 'nome', sortable: true },
@@ -121,36 +120,36 @@ const headers = [
   { title: 'Gravity (m/s²)', key: 'gravidade_m_s2', sortable: true },
   { title: 'Distance (ly)', key: 'distancia_anos_luz', sortable: true },
   { title: 'Star', key: 'estrela_nome', sortable: true },
-  { title: 'Galaxy', key: 'galaxia_nome', sortable: true }
-]
+  { title: 'Galaxy', key: 'galaxia_nome', sortable: true },
+];
 
 function formatNumber(value, suffix = '') {
-  if (value === null || value === undefined || value === '') return 'N/A'
-  
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return 'N/A'
-  
-  return num.toFixed(2) + suffix
+  if (value === null || value === undefined || value === '') return 'N/A';
+
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return 'N/A';
+
+  return num.toFixed(2) + suffix;
 }
 
 function formatDistance(value) {
-  if (value === null || value === undefined || value === '') return 'N/A'
-  
-  const num = typeof value === 'string' ? parseFloat(value) : value
-  if (isNaN(num)) return 'N/A'
-  
-  if (num === 0) return '0 ly (Solar System)'
-  return num.toFixed(2) + ' ly'
+  if (value === null || value === undefined || value === '') return 'N/A';
+
+  const num = typeof value === 'string' ? parseFloat(value) : value;
+  if (isNaN(num)) return 'N/A';
+
+  if (num === 0) return '0 ly (Solar System)';
+  return num.toFixed(2) + ' ly';
 }
 
 function getPlanetTypeColor(type) {
   const colors = {
-    'Gasoso': 'orange',
-    'Rochoso': 'green',
-    'Anão': 'blue',
-    'Desconhecido': 'grey'
-  }
-  return colors[type] || 'grey'
+    Gasoso: 'orange',
+    Rochoso: 'green',
+    Anão: 'blue',
+    Desconhecido: 'grey',
+  };
+  return colors[type] || 'grey';
 }
 
 async function fetchPlanets() {
@@ -162,18 +161,9 @@ async function fetchPlanets() {
     if (filters.value.maxMass) params.append('maxMass', filters.value.maxMass)
     if (filters.value.planetType) params.append('planetType', filters.value.planetType)
     
-    const response = await fetch(`/api/planets?${params}`)
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`)
-    }
-    
-    const data = await response.json()
-    console.log('Planets data received:', data)
-    planets.value = data
+    planets.value = await apiClient.get(`/planets?${params}`)
   } catch (error) {
     console.error('Error fetching planets:', error)
-    planets.value = []
   } finally {
     loading.value = false
   }
@@ -184,12 +174,12 @@ function resetFilters() {
     search: '',
     minMass: '',
     maxMass: '',
-    planetType: ''
-  }
-  fetchPlanets()
+    planetType: '',
+  };
+  fetchPlanets();
 }
 
 onMounted(() => {
-  fetchPlanets()
-})
+  fetchPlanets();
+});
 </script>
